@@ -1,6 +1,7 @@
 streamlit
-opencv-python
+opencv-python-headless==4.9.0.80
 numpy
 Pillow
 pillow-heif
 scikit-image
+opencv-python==0.0.0
