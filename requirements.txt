@@ -4,4 +4,3 @@ numpy
 Pillow
 pillow-heif
 scikit-image
-opencv-python==0.0.0
