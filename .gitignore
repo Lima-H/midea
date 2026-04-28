@@ -27,8 +27,6 @@ var/
 *.egg
 
 # PyInstaller
-#  Usually these files are written by a python script from a template
-#  before PyInstaller builds the exe, so as to inject date/other infos into it.
 *.manifest
 *.spec
 
@@ -49,12 +47,14 @@ coverage.xml
 
 # Jupyter Notebook
 .ipynb_checkpoints
+notebooks/
 
 # pyenv
 .python-version
 
-# VS Code
+# VS Code / LSP local config
 .vscode/
+pyrightconfig.json
 
 # macOS
 .DS_Store
@@ -62,12 +62,51 @@ coverage.xml
 # Streamlit
 .streamlit/
 
-# Generated images
-test_outputs/
-
 # Local config
 .env.local
 
 # Logs
 logs/
 *.log
+
+# ----------------------------------------------------------------------------
+# Dados e saídas — não vão para o repositório
+# ----------------------------------------------------------------------------
+
+# Diretórios de dados de entrada (imagens originais)
+data/
+Imagens/
+imagens_10cm/
+imagens_iphone/
+imagens_recortadas/
+imgs-23-04-2026/
+novas fotos/
+saidas/
+
+# Diretórios de saídas geradas pelo pipeline
+test_outputs/
+test_outputs_*/
+eval_outputs/
+eval_outputs_*/
+
+# Imagens soltas na raiz
+IMG_*.heic
+IMG_*.HEIC
+relatorio_*.png
+relatorio_*.html
+
+# ----------------------------------------------------------------------------
+# Scripts auxiliares (testes, debug, ferramentas) — não vão para o repositório
+# ----------------------------------------------------------------------------
+
+# Scripts antigos / experimentais na raiz
+analise_imagens_10cm.py
+debug_refinamento.py
+detectar_furos_midea.py
+teste_canny.py
+teste_canny_skimage.py
+teste_refinamento.py
+
+# Diretórios auxiliares (galeria, exploração, módulos não integrados)
+scripts/
+utils/

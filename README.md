@@ -1,33 +1,38 @@
 # Análise de Qualidade - Placas Midea
 
-Ferramenta de visão computacional para inspeção automatizada de placas Midea. Detecta furos, verifica diâmetros e identifica rebarbas (fios/riscos) dentro dos furos.
+POC de visão computacional para inspecionar furos em peças industriais. Mede o
+diâmetro de cada furo (~10mm nominais, tolerância ±1mm) e detecta filamentos
+lineares dentro do furo — fios e rebarbas que cruzam o interior.
 
 ## Funcionalidades
 
-### 1. Detecção de Furos
-- Detecção automática via HoughCircles + refinamento com fitEllipse e gradiente radial
-- Calibração automática de px/mm pela mediana dos raios (todos os furos são 10mm nominais)
-- Classificação por tolerância de diâmetro (±1mm)
+- **Detecção de furos**: HoughCircles com refinamento por gradiente radial e
+  ajuste de elipse. Calibração automática px/mm pela mediana robusta dos raios
+  (rejeição de outliers via MAD).
+- **Detecção de filamentos**: filtro de vesselness Frangi + black-hat morfológico
+  orientado (varredura em 12 ângulos) + análise de componentes conexos do
+  esqueleto. Detecta polaridade automaticamente, lidando com vista "fechada"
+  (interior escuro com filamento claro) e vista "aberta" (interior claro
+  iluminado com filamento escuro).
+- **UI Streamlit**: sliders para todos os parâmetros, com avaliação em tempo real.
 
-### 2. Detecção de Rebarbas
-- Pipeline baseado em detecção de linhas: Canny → HoughLinesP → merge de segmentos → filtro de borda
-- Analisa cada furo individualmente com máscara circular
-- Filtra artefatos de borda para evitar falsos positivos
+## Estrutura
 
-### 3. Parâmetros Ajustáveis
-- Sidebar com sliders para todos os parâmetros do pipeline
-- Ajuste em tempo real de thresholds de Canny, HoughCircles, merge de linhas, etc.
-
-## Como o Pipeline Funciona
-
-1. **Pré-processamento:** GaussianBlur + MedianBlur na imagem em escala de cinza
-2. **Detecção de furos:** HoughCircles → ROI + Canny + Threshold → contorno → fitEllipse → refinamento por gradiente radial
-3. **Calibração:** Mediana dos raios detectados define a escala px/mm
-4. **Detecção de rebarbas (por furo):**
-   - Recorte ROI com máscara circular
-   - GaussianBlur → Canny (com máscara interna a 85% do raio)
-   - HoughLinesP → merge de segmentos próximos → filtro de linhas de borda
-   - Linhas restantes = rebarbas detectadas
+```
+midea/
+├── app.py                       # UI Streamlit
+├── pipeline/
+│   ├── io.py                    # Carregamento HEIC/JPG/PNG, EXIF, downscale
+│   ├── preprocess.py            # CLAHE, polaridade, ROI
+│   ├── holes.py                 # Detecção de furos + calibração MAD
+│   ├── filaments.py             # Frangi + black-hat orientado
+│   ├── draw.py                  # Overlays de visualização
+│   └── metrics.py               # Agregação de stats por imagem
+├── scripts/
+│   └── eval_gallery.py          # Galeria HTML qualitativa (sem labels)
+├── data/                        # Imagens de entrada
+└── requirements.txt
+```
 
 ## Instalação
 
@@ -37,23 +42,59 @@ cd midea
 pip install -r requirements.txt
 ```
 
-## Como Rodar
+> A versão `opencv-contrib-python-headless` é necessária para
+> `cv2.ximgproc.thinning` (esqueletização Guo-Hall). `scikit-image` traz o
+> filtro de vesselness Frangi.
+
+## Como rodar
+
+### UI interativa
 
 ```bash
 streamlit run app.py
 ```
 
-Acesse `http://localhost:8501` no navegador. Faça upload de uma imagem (.jpg, .jpeg, .png, .heic) para ver a análise.
+Acesse `http://localhost:8501`. Faça upload de uma imagem (`.jpg`, `.jpeg`,
+`.png`, `.heic`).
 
-## Estrutura do Projeto
+### Galeria qualitativa em todo o dataset
 
-- `app.py` — Aplicação principal (pipeline + interface Streamlit)
-- `requirements.txt` — Dependências Python
+```bash
+python scripts/eval_gallery.py --input data --output eval_outputs
+open eval_outputs/gallery.html
+```
+
+Gera 3 thumbnails por imagem (original, furos, filamentos) em uma única página
+HTML para revisão visual rápida.
+
+## Pipeline (resumo técnico)
+
+1. **Carregamento**: HEIC/JPG/PNG com correção EXIF e downscale opcional para
+   máx. 2000 px no maior lado.
+2. **CLAHE** global (`clipLimit=2.0`, `tileGridSize=8×8`) antes do HoughCircles.
+3. **HoughCircles** + ROI + Canny + threshold combinados → contornos →
+   `fitEllipse` → refinamento radial multi-raio com filtro IQR.
+4. **Calibração**: mediana dos raios após rejeição de outliers via MAD
+   (`|r − mediana| ≤ 3 × 1.4826 × MAD`). Assume todos os furos com diâmetro
+   nominal igual.
+5. **Por furo, detecta filamentos**:
+   1. Recorta ROI (margem 10%) e aplica CLAHE local.
+   2. Detecta polaridade comparando mediana(interior) vs mediana(anel externo),
+      mascarando saturação. Inverte a ROI se necessário para sempre tratar
+      "estruturas claras sobre fundo escuro".
+   3. Calcula vesselness Frangi (`sigmas=range(1, sigma_max+1)`).
+   4. Calcula black-hat com kernel linear varrendo orientações [0°, 180°)
+      em passos de 15°.
+   5. Funde os mapas (60% Frangi + 40% black-hat) e binariza no
+      percentil configurável (default 99.5).
+   6. Esqueletiza (Guo-Hall) e separa componentes conexos.
+   7. Filtros geométricos: comprimento, retidão, vesselness média e anti-borda
+      (rejeita componentes inteiramente periféricos com orientação tangencial).
 
 ## Dependências
 
-- `streamlit` — Interface web
-- `opencv-python-headless` — Processamento de imagem
-- `numpy` — Cálculos numéricos
-- `pandas` — Tabelas de resultados
-- `Pillow` + `pillow-heif` — Suporte a formatos de imagem (incluindo HEIC)
+- `streamlit` — interface web
+- `opencv-contrib-python-headless` — processamento de imagem + ximgproc
+- `scikit-image` — filtros de vesselness (Frangi)
+- `numpy`, `pandas` — dados
+- `Pillow` + `pillow-heif` — formatos de imagem (incluindo HEIC)
