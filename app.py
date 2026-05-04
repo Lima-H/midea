@@ -76,18 +76,18 @@ def _render_hole_sliders() -> None:
     st.slider("Hough dp", 1.0, 3.0, 1.2, step=0.1, key="hole_dp")
     st.slider("Hough param1", 20, 200, 80, key="hole_p1")
     st.slider(
-        "Hough param2", 10, 100, 35, key="hole_p2",
+        "Hough param2", 10, 100, 30, key="hole_p2",
         help="Reduza (25-30) se faltam furos. Aumente se aparecem círculos espúrios.",
     )
     st.slider(
-        "Distância mínima entre centros (px @ 4032px)", 80, 400, 180, step=10,
+        "Distância mínima entre centros (px @ 4032px)", 80, 400, 140, step=10,
         key="hole_min_dist",
         help="Reduza (140-180) se furos adjacentes não são detectados.",
     )
     st.slider("Raio mínimo (px @ 4032px)", 50, 250, 140, step=5, key="hole_min_r")
     st.slider(
-        "Raio máximo (px @ 4032px)", 150, 500, 220, step=5, key="hole_max_r",
-        help="Reduza (200-220) para evitar que o anel externo seja confundido com o furo.",
+        "Raio máximo (px @ 4032px)", 150, 500, 160, step=5, key="hole_max_r",
+        help="Reduza (160-220) para evitar que o anel externo seja confundido com o furo.",
     )
 
 
@@ -103,11 +103,11 @@ def _render_filament_sliders() -> None:
     )
     st.slider("Frangi sigma máximo", 1, 6, 3, key="filament_sigma_max")
     st.slider(
-        "Percentil de score (threshold)", 95.0, 99.95, 99.5, step=0.05,
+        "Percentil de score (threshold)", 95.0, 99.95, 97.0, step=0.05,
         key="filament_score_pct",
     )
     st.slider(
-        "Comprimento mínimo (% diâmetro)", 0.05, 0.50, 0.20, step=0.05,
+        "Comprimento mínimo (% diâmetro)", 0.05, 0.50, 0.15, step=0.05,
         key="filament_min_len",
     )
     st.slider(
